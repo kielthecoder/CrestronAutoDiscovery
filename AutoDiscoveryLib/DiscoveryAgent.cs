@@ -21,6 +21,9 @@ namespace AutoDiscoveryLib
             }
         }
 
+        public EventHandler OnStarted;
+        public EventHandler OnStopping;
+
         public DiscoveryAgent()
         {
             _socket = new UDPServer();
@@ -36,12 +39,20 @@ namespace AutoDiscoveryLib
                 _isActive = false;
 
             CrestronConsole.PrintLine("Start result = {0}", result.ToString());
+
+            // Allow first-run actions once socket is established
+            if (OnStarted != null && _isActive)
+                OnStarted(this, new EventArgs());
         }
 
         public void Stop()
         {
             if (_isActive)
             {
+                // Allow clean-up before shutting down socket
+                if (OnStopping != null)
+                    OnStopping(this, new EventArgs());
+
                 var result = _socket.DisableUDPServer();
 
                 CrestronConsole.PrintLine("Stop result = {0}", result.ToString());
