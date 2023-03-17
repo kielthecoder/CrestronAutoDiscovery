@@ -23,6 +23,9 @@ namespace AutoDiscoveryLib
             }
         }
 
+        public string ID { get; set; }
+        public string Address { get; set; }
+
         public EventHandler OnStarted;
         public EventHandler OnStopping;
 
@@ -102,10 +105,20 @@ namespace AutoDiscoveryLib
 
         private void PollingLoop(object userObj)
         {
+            // Create a new DiscoveryPacket with our ID and Address
+            var pkt = new DiscoveryPacket() { ID = this.ID, Address = this.Address };
+
+            // Remember epoch of when we started
+            var epoch = DateTime.Now.Ticks;
+
             // Continue polling while server is active
             while (_active)
             {
-                CrestronConsole.PrintLine("* polling *");
+                // Convert ticks to milliseconds
+                pkt.Clock = (uint)((DateTime.Now.Ticks - epoch) / TimeSpan.TicksPerMillisecond);
+
+                // Serialize our object for transmisison
+                var bytes = pkt.Serialize();
 
                 // Adjust this interval if too frequent
                 CrestronEnvironment.Sleep(3000);
