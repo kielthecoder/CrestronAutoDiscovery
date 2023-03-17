@@ -114,11 +114,29 @@ namespace AutoDiscoveryLib
             // Continue polling while server is active
             while (_active)
             {
-                // Convert ticks to milliseconds
-                pkt.Clock = (uint)((DateTime.Now.Ticks - epoch) / TimeSpan.TicksPerMillisecond);
+                try
+                {
+                    // Convert ticks to milliseconds
+                    pkt.Clock = (uint)((DateTime.Now.Ticks - epoch) / TimeSpan.TicksPerMillisecond);
 
-                // Serialize our object for transmisison
-                var bytes = pkt.Serialize();
+                    // Serialize our object for transmisison
+                    var bytes = pkt.Serialize();
+
+                    // Send our serialized info to the network
+                    if (bytes != null)
+                    {
+                        var result = _socket.SendData(bytes, bytes.Length);
+
+                        CrestronConsole.PrintLine("Poll result = {0}", result.ToString());
+                    }
+                }
+                catch (Exception e)
+                {
+                    CrestronConsole.PrintLine("Exception in poll loop: {0}", e.Message);
+
+                    if (e.InnerException != null)
+                        CrestronConsole.PrintLine("\t{0}", e.InnerException.Message);
+                }
 
                 // Adjust this interval if too frequent
                 CrestronEnvironment.Sleep(3000);

@@ -33,6 +33,9 @@ ANALOG_INPUT Port;
 DIGITAL_INPUT Start;
 DIGITAL_INPUT Stop;
 
+STRING_INPUT  My_ID[255];
+STRING_INPUT  My_Address[255];
+
 // OUTPUTS /////////////////////////////////////////////////////////////////////////////////
 
 DIGITAL_OUTPUT Active_Fb;
@@ -61,6 +64,16 @@ THREADSAFE PUSH Stop
 {
 	Discovery.Stop();
 	Active_Fb = Discovery.Active;
+}
+
+CHANGE My_ID
+{
+	Discovery.ID = My_ID;
+}
+
+CHANGE My_Address
+{
+	Discovery.Address = My_Address;
 }
 
 // CALLBACKS AND DELEGATES /////////////////////////////////////////////////////////////////

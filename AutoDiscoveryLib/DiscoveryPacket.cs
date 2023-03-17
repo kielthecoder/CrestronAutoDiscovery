@@ -18,8 +18,17 @@ namespace AutoDiscoveryLib
 
         public byte[] Serialize()
         {
-            // Convert strings to UTF8 byte arrays
+            // Convert strings to UTF8 byte arrays.  Make sure they are set to something
+            // and not null.
+
+            if (ID == null)
+                return null;
+
             var baID = Encoding.UTF8.GetBytes(ID);
+
+            if (Address == null)
+                return null;
+
             var baAddress = Encoding.UTF8.GetBytes(Address);
 
             // Get length of packed structure
