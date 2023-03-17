@@ -34,6 +34,9 @@ namespace AutoDiscoveryLib
 
         public void Start(string address, ushort port)
         {
+            // Make sure server is stopped first
+            Stop();
+
             var result = _socket.EnableUDPServer(address, port);
 
             if (result == SocketErrorCodes.SOCKET_OK)
