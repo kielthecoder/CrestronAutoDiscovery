@@ -33,8 +33,9 @@ ANALOG_INPUT Port;
 DIGITAL_INPUT Start;
 DIGITAL_INPUT Stop;
 
-STRING_INPUT  My_ID[255];
-STRING_INPUT  My_Address[255];
+STRING_INPUT  My_Hostname[255];
+STRING_INPUT  My_IPv4[255];
+STRING_INPUT  My_Description[255];
 
 // OUTPUTS /////////////////////////////////////////////////////////////////////////////////
 
@@ -66,14 +67,19 @@ THREADSAFE PUSH Stop
 	Active_Fb = Discovery.Active;
 }
 
-CHANGE My_ID
+CHANGE My_Hostname
 {
-	Discovery.ID = My_ID;
+	Discovery.Hostname = My_Hostname;
 }
 
-CHANGE My_Address
+CHANGE My_IPv4
 {
-	Discovery.Address = My_Address;
+	Discovery.IPv4 = My_IPv4;
+}
+
+CHANGE My_Description
+{
+	Discovery.Description = My_Description;
 }
 
 // CALLBACKS AND DELEGATES /////////////////////////////////////////////////////////////////
