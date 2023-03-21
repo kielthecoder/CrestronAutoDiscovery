@@ -24,8 +24,10 @@ namespace AutoDiscoveryLib
             }
         }
 
-        public string ID { get; set; }
-        public string Address { get; set; }
+        public string IPv4 { get; set; }
+        public string Hostname { get; set; }
+        public string Description { get; set; }
+        public int PollingPeriod { get; set; }
 
         public EventHandler OnStarted;
         public EventHandler OnStopping;
@@ -39,6 +41,7 @@ namespace AutoDiscoveryLib
             CrestronEnvironment.ProgramStatusEventHandler += ProgramStatusChange;
 
             // Add a polling timer to when server starts
+            PollingPeriod = 3000;
             OnStarted += ArmPollingTimer;
         }
 
@@ -88,10 +91,12 @@ namespace AutoDiscoveryLib
             {
                 try
                 {
+                    CrestronConsole.PrintLine("Received {0} bytes...", numBytes);
+
                     var pkt = new DiscoveryPacket();
                     pkt.Deserialize(server.IncomingDataBuffer, numBytes);
 
-                    CrestronConsole.PrintLine("Discovery packet received: {0}, {1}, {2}", pkt.ID, pkt.Address, pkt.Clock);
+                    CrestronConsole.PrintLine("Discovery packet received: {0} @ {1} ({2})", pkt.Hostname, pkt.IPv4, pkt.Description);
                 }
                 catch (Exception e)
                 {
@@ -131,30 +136,20 @@ namespace AutoDiscoveryLib
 
         private void PollingLoop(object userObj)
         {
-            // Create a new DiscoveryPacket with our ID and Address
-            var pkt = new DiscoveryPacket() { ID = this.ID, Address = this.Address };
-
-            // Remember epoch of when we started
-            var epoch = DateTime.Now.Ticks;
-
+            // Create a new DiscoveryPacket with our info
+            var pkt = new DiscoveryPacket() { Version = 1, Hostname = this.Hostname, IPv4 = this.IPv4, Description = this.Description };
+            
             // Continue polling while server is active
             while (_active)
             {
                 try
                 {
-                    // Convert ticks to milliseconds
-                    pkt.Clock = (uint)((DateTime.Now.Ticks - epoch) / TimeSpan.TicksPerMillisecond);
-
                     // Serialize our object for transmisison
                     var bytes = pkt.Serialize();
 
                     // Send our serialized info to the network
                     if (bytes != null)
-                    {
-                        var result = _socket.SendData(bytes, bytes.Length);
-
-                        CrestronConsole.PrintLine("Poll result = {0}", result.ToString());
-                    }
+                        _socket.SendData(bytes, bytes.Length);
                 }
                 catch (Exception e)
                 {
@@ -165,7 +160,7 @@ namespace AutoDiscoveryLib
                 }
 
                 // Adjust this interval if too frequent
-                CrestronEnvironment.Sleep(3000);
+                CrestronEnvironment.Sleep(PollingPeriod);
             }
 
             // Release resources if currently active
