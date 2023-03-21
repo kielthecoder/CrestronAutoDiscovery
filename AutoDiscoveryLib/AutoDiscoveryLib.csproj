@@ -63,6 +63,7 @@
     <Compile Include="DiscoveryAgent.cs" />
     <Compile Include="DiscoveryPacket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ISandboxSerialize.cs" />
     <None Include="Properties\ControlSystem.cfg" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CompactFramework.CSharp.targets" />

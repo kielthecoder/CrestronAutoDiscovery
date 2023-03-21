@@ -1,68 +1,84 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using System.Runtime;
 using Crestron.SimplSharp;
+using Crestron.SimplSharp.CrestronIO;
 
 namespace AutoDiscoveryLib
 {
-    class DiscoveryPacket
+    class DiscoveryPacket : ISandboxSerialize
     {
         public string ID { get; set; }
         public string Address { get; set; }
         public uint Clock { get; set; }
 
-        public DiscoveryPacket()
-        {
-        }
-
         public byte[] Serialize()
         {
-            // Convert strings to UTF8 byte arrays.  Make sure they are set to something
-            // and not null.
+            var ms = new MemoryStream();
+            var writer = new BinaryWriter(ms);
 
-            if (ID == null)
-                return null;
-
-            var baID = Encoding.UTF8.GetBytes(ID);
-
-            if (Address == null)
-                return null;
-
-            var baAddress = Encoding.UTF8.GetBytes(Address);
-
-            // Get length of packed structure
-            int length = baID.Length + sizeof(uint) +
-                         baAddress.Length + sizeof(uint) +
-                         sizeof(uint) + 2;
-
-            // Build a new byte array to hold serial data
-            var data = new byte[length];
-            int i = 0;
-
-            // Header byte
-            data[i++] = 0x02;
+            // Start
+            writer.Write((int)SandboxSerializeDataType.StartMarker);
 
             // ID
-            data.SetValue(baID.Length, i);
-            i += sizeof(int);
-            baID.CopyTo(data, i);
-            i += baID.Length;
+            writer.Write((int)SandboxSerializeDataType.String);
+            var baID = Encoding.UTF8.GetBytes(ID);
+            writer.Write(baID.Length);
+            writer.Write(baID);
 
             // Address
-            data.SetValue(baAddress.Length, i);
-            i += sizeof(int);
-            baAddress.CopyTo(data, i);
-            i += baAddress.Length;
+            writer.Write((int)SandboxSerializeDataType.String);
+            var baAddress = Encoding.UTF8.GetBytes(Address);
+            writer.Write(baAddress.Length);
+            writer.Write(baAddress);
 
             // Clock
-            data.SetValue(Clock, i);
-            i += sizeof(uint);
+            writer.Write((int)SandboxSerializeDataType.UInt32);
+            writer.Write(Clock);
 
-            // Footer byte
-            data[i++] = 0x03;
+            // End
+            writer.Write((int)SandboxSerializeDataType.EndMarker);
+            writer.Flush();
 
-            return data;
+            return ms.GetBuffer();
+        }
+
+        public void Deserialize(byte[] data)
+        {
+            Deserialize(data, data.Length);
+        }
+
+        public void Deserialize(byte[] data, int numBytes)
+        {
+            using (var reader = new BinaryReader(new MemoryStream(data, 0, numBytes)))
+            {
+                int length;
+
+                // Start
+                if (reader.ReadInt32() != (int)SandboxSerializeDataType.StartMarker)
+                    throw new Exception("StartMarker missing");
+
+                // ID
+                if (reader.ReadInt32() != (int)SandboxSerializeDataType.String)
+                    throw new Exception("Expected String marker for ID");
+                length = reader.ReadInt32();
+                ID = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
+
+                // Address
+                if (reader.ReadInt32() != (int)SandboxSerializeDataType.String)
+                    throw new Exception("Expected String marker for Address");
+                length = reader.ReadInt32();
+                Address = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
+
+                // Clock
+                if (reader.ReadInt32() != (int)SandboxSerializeDataType.UInt32)
+                    throw new Exception("Expected UInt32 marker for Clock");
+                Clock = reader.ReadUInt32();
+
+                // End
+                if (reader.ReadInt32() != (int)SandboxSerializeDataType.EndMarker)
+                    throw new Exception("EndMarker missing");
+            }
         }
     }
 }

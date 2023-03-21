@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using Crestron.SimplSharp;
 using Crestron.SimplSharp.CrestronSockets;
 
@@ -59,6 +60,9 @@ namespace AutoDiscoveryLib
             // Allow first-run actions once socket is established
             if (OnStarted != null && _active)
                 OnStarted(this, new EventArgs());
+
+            // Setup listening thread
+            _socket.ReceiveDataAsync(DataReceived);
         }
 
         public void Stop()
@@ -76,6 +80,28 @@ namespace AutoDiscoveryLib
             }
 
             _active = false;
+        }
+
+        private void DataReceived(UDPServer server, int numBytes)
+        {
+            if (numBytes > 0)
+            {
+                try
+                {
+                    var pkt = new DiscoveryPacket();
+                    pkt.Deserialize(server.IncomingDataBuffer, numBytes);
+
+                    CrestronConsole.PrintLine("Discovery packet received: {0}, {1}, {2}", pkt.ID, pkt.Address, pkt.Clock);
+                }
+                catch (Exception e)
+                {
+                    CrestronConsole.PrintLine("Exception in DataReceived: {0}", e.Message);
+                }
+            }
+
+            // Re-arm listening thread
+            if (_active)
+                _socket.ReceiveDataAsync(DataReceived);
         }
 
         private void ProgramStatusChange(eProgramStatusEventType type)
