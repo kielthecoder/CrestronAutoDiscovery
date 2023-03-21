@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
 
 namespace AutoDiscoveryLib
 {
-    public enum SandboxSerializeDataType
+    public enum SandboxSerializeDataType : byte
     {
-        StartMarker,
+        Start = 1,
+        Int32,
         UInt32,
         String,
-        EndMarker
+        End = 127
     }
 
     public interface ISandboxSerialize

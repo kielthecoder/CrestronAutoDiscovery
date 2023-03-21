@@ -8,39 +8,124 @@ namespace AutoDiscoveryLib
 {
     class DiscoveryPacket : ISandboxSerialize
     {
-        public string ID { get; set; }
-        public string Address { get; set; }
-        public uint Clock { get; set; }
+        bool _dirty;
+        byte[] _bytes;
+        int _numBytes;
+
+        int _version;
+        public int Version
+        {
+            get
+            {
+                return _version;
+            }
+            set
+            {
+                _version = value;
+                _dirty = true;
+            }
+        }
+
+        string _ipv4;
+        public string IPv4
+        {
+            get
+            {
+                return _ipv4;
+            }
+            set
+            {
+                _ipv4 = value;
+                _dirty = true;
+            }
+        }
+
+        string _hostname;
+        public string Hostname
+        {
+            get
+            {
+                return _hostname;
+            }
+            set
+            {
+                _hostname = value;
+                _dirty = true;
+            }
+        }
+
+        string _description;
+        public string Description
+        {
+            get
+            {
+                return _description;
+            }
+            set
+            {
+                _description = value;
+                _dirty = true;
+            }
+        }
+
+        public DiscoveryPacket()
+        {
+            _dirty = true;
+        }
 
         public byte[] Serialize()
         {
-            var ms = new MemoryStream();
-            var writer = new BinaryWriter(ms);
+            if (_dirty)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    _dirty = false;
 
-            // Start
-            writer.Write((int)SandboxSerializeDataType.StartMarker);
+                    using (var writer = new BinaryWriter(ms))
+                    {
+                        // Start
+                        writer.Write((byte)SandboxSerializeDataType.Start);
 
-            // ID
-            writer.Write((int)SandboxSerializeDataType.String);
-            var baID = Encoding.UTF8.GetBytes(ID);
-            writer.Write(baID.Length);
-            writer.Write(baID);
+                        // Version
+                        writer.Write((byte)SandboxSerializeDataType.Int32);
+                        writer.Write(Version);
 
-            // Address
-            writer.Write((int)SandboxSerializeDataType.String);
-            var baAddress = Encoding.UTF8.GetBytes(Address);
-            writer.Write(baAddress.Length);
-            writer.Write(baAddress);
+                        // IPv4
+                        if (IPv4 == null)
+                            IPv4 = String.Empty;
+                        writer.Write((byte)SandboxSerializeDataType.String);
+                        WriteBytes(writer, Encoding.UTF8.GetBytes(IPv4));
 
-            // Clock
-            writer.Write((int)SandboxSerializeDataType.UInt32);
-            writer.Write(Clock);
+                        // Hostname
+                        if (Hostname == null)
+                            Hostname = String.Empty;
+                        writer.Write((byte)SandboxSerializeDataType.String);
+                        WriteBytes(writer, Encoding.UTF8.GetBytes(Hostname));
 
-            // End
-            writer.Write((int)SandboxSerializeDataType.EndMarker);
-            writer.Flush();
+                        // Description
+                        if (Description == null)
+                            Description = String.Empty;
+                        writer.Write((byte)SandboxSerializeDataType.String);
+                        WriteBytes(writer, Encoding.UTF8.GetBytes(Description));
 
-            return ms.GetBuffer();
+                        // End
+                        writer.Write((byte)SandboxSerializeDataType.End);
+
+                        _numBytes = (int)writer.BaseStream.Position;
+                        _bytes = ms.ToArray();
+
+                        CrestronConsole.PrintLine("Sending packet size should be {0} bytes...", _numBytes);
+                    }
+                }
+            }
+
+            return _bytes;
+        }
+
+        private void WriteBytes(BinaryWriter writer, byte[] bytes)
+        {
+            writer.Write(bytes.Length);
+            writer.Write(bytes);
         }
 
         public void Deserialize(byte[] data)
@@ -55,29 +140,35 @@ namespace AutoDiscoveryLib
                 int length;
 
                 // Start
-                if (reader.ReadInt32() != (int)SandboxSerializeDataType.StartMarker)
-                    throw new Exception("StartMarker missing");
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.Start)
+                    throw new Exception("Start byte missing");
 
-                // ID
-                if (reader.ReadInt32() != (int)SandboxSerializeDataType.String)
-                    throw new Exception("Expected String marker for ID");
+                // Version
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.Int32)
+                    throw new Exception("Expected Int32 marker for Version");
+                Version = reader.ReadInt32();
+
+                // IPv4
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.String)
+                    throw new Exception("Expected String marker for IPv4");
                 length = reader.ReadInt32();
-                ID = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
+                IPv4 = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
 
-                // Address
-                if (reader.ReadInt32() != (int)SandboxSerializeDataType.String)
-                    throw new Exception("Expected String marker for Address");
+                // Hostname
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.String)
+                    throw new Exception("Expected String marker for Hostname");
                 length = reader.ReadInt32();
-                Address = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
+                Hostname = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
 
-                // Clock
-                if (reader.ReadInt32() != (int)SandboxSerializeDataType.UInt32)
-                    throw new Exception("Expected UInt32 marker for Clock");
-                Clock = reader.ReadUInt32();
+                // Description
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.String)
+                    throw new Exception("Expected String marker for Description");
+                length = reader.ReadInt32();
+                Description = Encoding.UTF8.GetString(reader.ReadBytes(length), 0, length);
 
                 // End
-                if (reader.ReadInt32() != (int)SandboxSerializeDataType.EndMarker)
-                    throw new Exception("EndMarker missing");
+                if (reader.ReadByte() != (byte)SandboxSerializeDataType.End)
+                    throw new Exception("End byte missing");
             }
         }
     }
