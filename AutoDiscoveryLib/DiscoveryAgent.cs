@@ -29,8 +29,8 @@ namespace AutoDiscoveryLib
         public string Description { get; set; }
         public int PollingPeriod { get; set; }
 
-        public EventHandler OnStarted;
-        public EventHandler OnStopping;
+        public event EventHandler OnStarted;
+        public event EventHandler OnStopping;
 
         public DiscoveryAgent()
         {
