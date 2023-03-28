@@ -4,12 +4,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
+using Crestron.SimplSharp;
 
 namespace AutoDiscoveryLib4
 {
     public class DiscoveryAgent
     {
-        private IPEndPoint _endpoint;
+        private System.Net.IPEndPoint _endpoint;
         private UdpClient _socket;
         private Thread _poll;
 
@@ -50,7 +51,7 @@ namespace AutoDiscoveryLib4
             Stop();
 
             // Create an endpoint to represent this address:port
-            _endpoint = new IPEndPoint(IPAddress.Parse(address), port);
+            _endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(address), port);
 
             // Enable the UDP socket for given address and port
             _socket.Connect(_endpoint);
@@ -58,7 +59,8 @@ namespace AutoDiscoveryLib4
             // Always succeeds?
             _active = true;
 
-            Console.WriteLine("UDP socket opened");
+            //Console.WriteLine("UDP socket opened");
+            CrestronConsole.PrintLine("UDP socket opened");
 
             if (OnStarted != null && _active)
                 OnStarted(this, new EventArgs());
@@ -84,29 +86,35 @@ namespace AutoDiscoveryLib4
                 // Make sure we leave the polling loop
                 if (_poll != null)
                     _poll.Join();
+
+                CrestronConsole.PrintLine("UDP socket stopped");
             }
         }
 
         private void DataReceived(IAsyncResult result)
         {
             var sock = (UdpClient)result.AsyncState;
-
-            if (sock.Available > 0)
+            if (sock != null)
             {
-                var ep = new IPEndPoint(IPAddress.Any, 0);
-                var data = sock.Receive(ref ep);
+                if (sock.Available > 0)
+                {
+                    var ep = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+                    var data = sock.EndReceive(result, ref ep);
 
-                Console.WriteLine("Received {0} bytes from {1}...", sock.Available, ep.Address.ToString());
+                    //Console.WriteLine("Received {0} bytes from {1}...", sock.Available, ep.Address.ToString());
+                    CrestronConsole.PrintLine("Received {0} bytes from {1}...", sock.Available, ep.Address.ToString());
 
-                var fmt = new BinaryFormatter();
-                var pkt = (DiscoveryPacket)fmt.Deserialize(new MemoryStream(data));
+                    var fmt = new BinaryFormatter();
+                    var pkt = (DiscoveryPacket)fmt.Deserialize(new MemoryStream(data));
 
-                Console.WriteLine("Discovery packet received: {0} @ {1} ({2})", pkt.Hostname, pkt.IPv4, pkt.Description);
+                    //Console.WriteLine("Discovery packet received: {0} @ {1} ({2})", pkt.Hostname, pkt.IPv4, pkt.Description);
+                    CrestronConsole.PrintLine("  DiscoveryPacket: {0} @ {1} ({2})", pkt.Hostname, pkt.IPv4, pkt.Description);
+                }
             }
 
             // Re-arm listening thread
             if (_active)
-                _socket.BeginReceive(DataReceived, null);
+                _socket.BeginReceive(DataReceived, _socket);
         }
 
         private void ArmPollingTimer(object sender, EventArgs args)
