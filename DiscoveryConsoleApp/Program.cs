@@ -7,20 +7,18 @@ namespace DiscoveryConsoleApp
     {
         static void Main(string[] args)
         {
-            var pkt = new DiscoveryPacket()
-            {
-                Version = 1,
-                Hostname = "MY-PC",
-                IPv4 = "192.168.1.99",
-                Description = ".NET Framework 4.7.2"
-            };
+            var agent = new DiscoveryAgent();
+            
+            agent.Hostname = "KIEL-PC";
+            agent.IPv4 = "192.168.1.99";
+            agent.Description = ".NET Framework 4.7.2";
 
-            var jsonStr = JsonConvert.SerializeObject(pkt);
+            agent.Start("239.64.64.64", 5555);
 
-            Console.WriteLine(jsonStr);
-
-            Console.Write("\nPress Enter to continue");
+            Console.WriteLine("\nPress Enter to exit");
             Console.ReadLine();
+
+            agent.Stop();
         }
     }
 }
